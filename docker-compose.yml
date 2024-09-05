@@ -1,0 +1,68 @@
+version: '2.3'
+
+services:
+  # TODO
+  # rename?
+  search_engine:
+    restart: always
+    container_name: search_engine
+    mem_limit: 2600m
+
+    build:
+      context: ./search_engine
+      dockerfile: Dockerfile
+
+    image: search_engine:latest
+    
+    # TODO
+    # move to .env
+    environment:
+      DB_NAME: "hackdb"
+      DB_USER: "hack"
+      DB_PASSWORD: "hack"
+      DB_HOST: "postgres"
+      DB_PORT: 5044
+      EMBEDDER_URL: "http://search_embedder:5043"
+    volumes:
+      - ./search_engine:/search_engine
+    command: bash -c "uvicorn src.main:app --host 0.0.0.0 --port 5041"
+    ports:
+      - 5041:5041
+    depends_on:
+      - postgres
+      - search_embedder
+
+  search_embedder:
+    restart: always
+    container_name: search_embedder
+    mem_limit: 4G
+
+    build:
+      context: ./embedder
+      dockerfile: Dockerfile
+    image: search_embedder:latest
+      
+    volumes:
+      - ./embedder:/embedder
+    command: bash -c "uvicorn main:app --host 0.0.0.0 --port 5043"
+    ports:
+      - 5043:5043
+
+  postgres:
+    restart: always
+    container_name: postgres
+    mem_limit: 100m
+    image: postgres:13.3
+    
+    environment:
+      POSTGRES_DB: "hackdb"
+      POSTGRES_USER: "hack"
+      POSTGRES_PASSWORD: "hack"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data/pgdata
+    command: "-p 5044"
+    ports:
+      - 5044:5044
+
+
