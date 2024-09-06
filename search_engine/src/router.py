@@ -28,6 +28,10 @@ async def search(
         from the database and the "success" key with the value True.
     """
     # TODO
+    # if user's last content is similar to any of popular - return
+    # use llm? train some model?
+
+    # TODO
     # query rewriting - to make last user message contextualized
     req = text.history[-1].content
 
