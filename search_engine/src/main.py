@@ -19,6 +19,7 @@ from src.router import router
 @asynccontextmanager
 async def init_tables(app: FastAPI):
     hc.Readiness(urls=[os.getenv("EMBEDDER_URL")], logger=app.state.Logger).run()
+    hc.Readiness(urls=[os.getenv("NEURAL_URL")], logger=app.state.Logger).run()
 
     # Init DB tables if not exist
     async with database.engine.begin() as conn:

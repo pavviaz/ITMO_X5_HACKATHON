@@ -1,4 +1,5 @@
 import os
+import json
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
@@ -31,9 +32,62 @@ async def get_text_embedding(text):
         async with session.get(
             f"{os.getenv('EMBEDDER_URL')}/search?text={text}"
         ) as resp:
-            responce = await resp.json()
+            response = await resp.json()
 
-    return responce["query_embedding"]
+    return response["query_embedding"]
+
+
+async def rewrite_query(chat_history):
+    """ """
+
+    lines = "\n".join(
+        [
+            f"{'ПОЛЬЗОВАТЕЛЬ: ' if el.role == 'user' else 'АССИСТЕНТ: '}: {el.content}"
+            for el in chat_history
+        ]
+    )
+    history = [{"role": "user", "content": config.qr_prompt.format(history=lines)}]
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            f"{os.getenv('NEURAL_URL')}/generate",
+            json={
+                "chat_history": history,
+                "max_new_tokens": config.max_new_tokens,
+            },
+        ) as resp:
+            response = await resp.json()
+
+    return json.loads(response["answer"])["answer"]
+
+
+async def qa_stuff(query, passages):
+    """ """
+
+    lines = "\n".join(
+        [
+            f"=== Фрагмент {idx + 1} ===\n{config.faiss_func(el)}"
+            for idx, el in enumerate(passages)
+        ]
+    )
+    history = [
+        {
+            "role": "user",
+            "content": config.stuff_prompt.format(query=query, passages=lines),
+        }
+    ]
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            f"{os.getenv('NEURAL_URL')}/generate",
+            json={
+                "chat_history": history,
+                "max_new_tokens": config.max_new_tokens,
+            },
+        ) as resp:
+            response = await resp.json()
+
+    return json.loads(response["answer"])["answer"]
 
 
 def faiss_search_result(query_embedding, f_index: faiss.IndexFlatL2):
@@ -86,10 +140,10 @@ async def insert_data(
 
 async def acc_testing(session: AsyncSession, f_index: faiss.IndexFlatL2):
     db_df = pd.read_csv(config.path_to_testfile)
-    
+
     top_3, top_5, top_10 = 0, 0, 0
     for idx, row in db_df.iterrows():
-        q_emb = await get_text_embedding(row["Характеристика товара"])
+        q_emb = await qa_stuff(row["Характеристика товара"])
 
         res = await search_by_embedding(q_emb, session, f_index)
         res = [el["index_metainf_id"] for el in res]
@@ -99,12 +153,15 @@ async def acc_testing(session: AsyncSession, f_index: faiss.IndexFlatL2):
 
         if row["Артикул"] in res[:5]:
             top_5 += 1
-        
+
         if row["Артикул"] in res:
             top_10 += 1
-    
+
     print(f"top_10 = {top_10} --- top_5 = {top_5} --- IDX = {idx}", flush=True)
-    print(f"acc@10 = {top_10 / idx} --- acc@5 = {top_5 / idx} --- acc@3 = {top_3 / idx}", flush=True)
+    print(
+        f"acc@10 = {top_10 / idx} --- acc@5 = {top_5 / idx} --- acc@3 = {top_3 / idx}",
+        flush=True,
+    )
 
 
 async def init_db(session: AsyncSession, f_index: faiss.IndexFlatL2):
@@ -127,10 +184,9 @@ async def init_db(session: AsyncSession, f_index: faiss.IndexFlatL2):
     for _, row in db_df.iterrows():
         # TODO
         # look at abbr_decoding in config
-        
-        row = {k: v if not pd.isna(v) else None 
-               for k, v in row.to_dict().items()}
-        
+
+        row = {k: v if not pd.isna(v) else None for k, v in row.to_dict().items()}
+
         await insert_data(
             row=row,
             faiss_str=config.faiss_func(row),

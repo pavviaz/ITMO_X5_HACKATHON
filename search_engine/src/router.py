@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from src.dao import search_by_embedding, get_text_embedding
+from src.dao import search_by_embedding, get_text_embedding, rewrite_query, qa_stuff
 from src.contracts import ChatHistory
-# from dao import search_by_embedding, get_text_embedding
+# from dao import search_by_embedding, get_text_embedding, rewrite_query, qa_stuff
 # from contracts import ChatHistory
 
 router = APIRouter(prefix="/api/v1", tags=["x5_api"])
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/v1", tags=["x5_api"])
 @router.post("/get_answer")
 async def search(
     request: Request,
-    text: ChatHistory,
+    chat_history: ChatHistory,
 ):
     """
     Search for nearest neighbors in
@@ -33,13 +33,13 @@ async def search(
 
     # TODO
     # query rewriting - to make last user message contextualized
-    req = text.history[-1].content
+    rewrited = await rewrite_query(chat_history.history)
 
     # TODO
-    # domen classifier - to decide wether to lauch main pipeline 
+    # domen classifier - to decide wether to lauch main pipeline
     # or ask to specify request
 
-    q_emb = await get_text_embedding(req)
+    q_emb = await get_text_embedding(rewrited)
 
     result = await search_by_embedding(
         embedding=q_emb,
@@ -47,4 +47,8 @@ async def search(
         f_index=request.state.fd,
     )
 
-    return JSONResponse(content={"res": result} | {"success": True})
+    qa = await qa_stuff(rewrited, result)
+
+    return JSONResponse(
+        content={"qa_answer": qa, "sources": result} | {"success": True}
+    )

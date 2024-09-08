@@ -13,11 +13,11 @@ class Embedder:
         instance of the SentenceTransformer model and setting the device.
         """
         self.model = SentenceTransformer(
-            WEIGHTS_PATH if os.path.exists(WEIGHTS_PATH) else DEFAULT_MODEL
+            WEIGHTS_PATH if os.path.exists(WEIGHTS_PATH) else DEFAULT_MODEL,
+            cache_folder=os.getenv("TRANSFORMERS_CACHE"),
+            device="cuda" if torch.cuda.is_available() else "cpu",
+            # device="mps" if torch.backends.mps.is_available() else "cpu"
         )
-        # self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.device = "mps" if torch.backends.mps.is_available() else "cpu"
-        self.model.to(device=self.device)
 
     def answer(self, query):
         """
@@ -38,6 +38,8 @@ class Embedder:
         result = {
             "query_embedding": [float(el) for el in torch.squeeze(emb)],
         }
+
+        torch.cuda.empty_cache()
 
         return result
 

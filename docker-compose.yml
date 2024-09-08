@@ -1,8 +1,6 @@
 version: '2.3'
 
 services:
-  # TODO
-  # rename?
   search_engine:
     restart: always
     container_name: search_engine
@@ -13,21 +11,20 @@ services:
       dockerfile: Dockerfile
 
     image: search_engine:latest
-    
-    # TODO
-    # move to .env
+
     environment:
-      DB_NAME: "hackdb"
-      DB_USER: "hack"
-      DB_PASSWORD: "hack"
-      DB_HOST: "postgres"
-      DB_PORT: 5044
-      EMBEDDER_URL: "http://search_embedder:5043"
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      EMBEDDER_URL: ${EMBEDDER_URL}
+      NEURAL_URL: ${NEURAL_URL}
     volumes:
       - ./search_engine:/search_engine
-    command: bash -c "uvicorn src.main:app --host 0.0.0.0 --port 5041"
+    command: bash -c "uvicorn src.main:app --host 0.0.0.0 --port ${SEARCH_ENGINE_PORT}"
     ports:
-      - 5041:5041
+      - ${SEARCH_ENGINE_PORT}:${SEARCH_ENGINE_PORT}
     depends_on:
       - postgres
       - search_embedder
@@ -41,28 +38,62 @@ services:
       context: ./embedder
       dockerfile: Dockerfile
     image: search_embedder:latest
-      
+    command: bash -c "uvicorn main:app --host 0.0.0.0 --port ${EMBEDDER_PORT}"
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES_EMB}
+      - TRANSFORMERS_CACHE=${TRANSFORMERS_CACHE_EMB}
+    
     volumes:
       - ./embedder:/embedder
-    command: bash -c "uvicorn main:app --host 0.0.0.0 --port 5043"
+
+      # TEST ONLY
+      # - /home/shace_linux/.cache/huggingface/hub:/cache/
+    
+    runtime: nvidia
+
     ports:
-      - 5043:5043
+      - ${EMBEDDER_PORT}:${EMBEDDER_PORT}
+
+  neural_worker:
+    restart: always
+    container_name: neural_worker
+    mem_limit: 32G
+
+    build:
+      context: ./neural_worker
+      dockerfile: Dockerfile
+    image: neural_worker:latest
+    command: bash -c "uvicorn main:app --host 0.0.0.0 --port 7860"
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES_LLM}
+      - TRANSFORMERS_CACHE=${TRANSFORMERS_CACHE_LLM}
+
+    volumes:
+      - ./neural_worker:/neural_worker
+
+      # TEST ONLY
+      # - /home/shace_linux/.cache/huggingface/hub:/cache/
+
+    runtime: nvidia
+
+    ports:
+      - ${WORKER_PORT}:${WORKER_PORT}
 
   postgres:
     restart: always
     container_name: postgres
     mem_limit: 100m
     image: postgres:13.3
-    
+
     environment:
-      POSTGRES_DB: "hackdb"
-      POSTGRES_USER: "hack"
-      POSTGRES_PASSWORD: "hack"
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
       - ./pgdata:/var/lib/postgresql/data/pgdata
-    command: "-p 5044"
+    command: "-p ${DB_PORT}"
     ports:
-      - 5044:5044
-
-
+      - ${DB_PORT}:${DB_PORT}
