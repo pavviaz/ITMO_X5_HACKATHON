@@ -69,6 +69,7 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES_LLM}
       - TRANSFORMERS_CACHE=${TRANSFORMERS_CACHE_LLM}
+      - HF_TOKEN=${HF_TOKEN}
 
     volumes:
       - ./neural_worker:/neural_worker

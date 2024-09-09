@@ -36,7 +36,7 @@ async def search(
     rewrited = await rewrite_query(chat_history.history)
 
     # TODO
-    # domen classifier - to decide wether to lauch main pipeline
+    # domain classifier - to decide wether to lauch main pipeline
     # or ask to specify request
 
     q_emb = await get_text_embedding(rewrited)
