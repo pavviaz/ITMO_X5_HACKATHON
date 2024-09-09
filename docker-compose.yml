@@ -1,0 +1,100 @@
+version: '2.3'
+
+services:
+  search_engine:
+    restart: always
+    container_name: search_engine
+    mem_limit: 2600m
+
+    build:
+      context: ./search_engine
+      dockerfile: Dockerfile
+
+    image: search_engine:latest
+
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      EMBEDDER_URL: ${EMBEDDER_URL}
+      NEURAL_URL: ${NEURAL_URL}
+    volumes:
+      - ./search_engine:/search_engine
+    command: bash -c "uvicorn src.main:app --host 0.0.0.0 --port ${SEARCH_ENGINE_PORT}"
+    ports:
+      - ${SEARCH_ENGINE_PORT}:${SEARCH_ENGINE_PORT}
+    depends_on:
+      - postgres
+      - search_embedder
+
+  search_embedder:
+    restart: always
+    container_name: search_embedder
+    mem_limit: 4G
+
+    build:
+      context: ./embedder
+      dockerfile: Dockerfile
+    image: search_embedder:latest
+    command: bash -c "uvicorn main:app --host 0.0.0.0 --port ${EMBEDDER_PORT}"
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES_EMB}
+      - TRANSFORMERS_CACHE=${TRANSFORMERS_CACHE_EMB}
+    
+    volumes:
+      - ./embedder:/embedder
+
+      # TEST ONLY
+      # - /home/shace_linux/.cache/huggingface/hub:/cache/
+    
+    runtime: nvidia
+
+    ports:
+      - ${EMBEDDER_PORT}:${EMBEDDER_PORT}
+
+  neural_worker:
+    restart: always
+    container_name: neural_worker
+    mem_limit: 32G
+
+    build:
+      context: ./neural_worker
+      dockerfile: Dockerfile
+    image: neural_worker:latest
+    command: bash -c "uvicorn main:app --host 0.0.0.0 --port 7860"
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES_LLM}
+      - TRANSFORMERS_CACHE=${TRANSFORMERS_CACHE_LLM}
+      - HF_TOKEN=${HF_TOKEN}
+
+    volumes:
+      - ./neural_worker:/neural_worker
+
+      # TEST ONLY
+      # - /home/shace_linux/.cache/huggingface/hub:/cache/
+
+    runtime: nvidia
+
+    ports:
+      - ${WORKER_PORT}:${WORKER_PORT}
+
+  postgres:
+    restart: always
+    container_name: postgres
+    mem_limit: 100m
+    image: postgres:13.3
+
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data/pgdata
+    command: "-p ${DB_PORT}"
+    ports:
+      - ${DB_PORT}:${DB_PORT}
