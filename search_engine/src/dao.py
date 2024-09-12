@@ -77,27 +77,34 @@ async def rewrite_query(chat_history):
 
     return chat_history[0].content
 
-async def check_popularity(last_query : str) -> str:
+
+async def check_popularity(last_query: str) -> str:
     """ """
-    history = [{"role": "user", "content": config.popularity_prompt.format(query=last_query)}]
+    history = [
+        {"role": "user", "content": config.popularity_prompt.format(query=last_query)}
+    ]
 
     llm_answer = await get_llm_answer(history)
 
     if llm_answer:
         return llm_answer
-    
+
     return "not_domain"
 
-async def check_domain(full_query : str) -> str:
+
+async def check_domain(full_query: str) -> str:
     """ """
-    history = [{"role": "user", "content": config.domain_prompt.format(query=full_query)}]
+    history = [
+        {"role": "user", "content": config.domain_prompt.format(query=full_query)}
+    ]
 
     llm_answer = await get_llm_answer(history)
 
     if llm_answer:
         return llm_answer
-    
-    return "not_domain"
+
+    return "trash"
+
 
 async def qa_stuff(query, passages):
     """ """

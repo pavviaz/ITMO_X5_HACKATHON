@@ -35,19 +35,31 @@ async def search(
     if popularity != "ordinary":
         popular_answer = popular_answers[popularity]
         return JSONResponse(
-            content={"qa_answer": popular_answer, "sources": "popular phrases"} | {"success": True}
+            content={"qa_answer": popular_answer, "sources": "popular phrases"}
+            | {"success": True}
         )
 
-    rewrited = await rewrite_query(chat_history.history)
+    if len(chat_history.history) > 1:
+        rewrited = await rewrite_query(chat_history.history)
+    else:
+        rewrited = chat_history.history
 
     domain = await check_domain(rewrited)
-    if domain == "clarification":
+    if domain == "multi":
         return JSONResponse(
-            content={"qa_answer": "Пожалуйста, уточните ваш запрос", "sources": "clarification"} | {"success": True}
+            content={
+                "qa_answer": "Пожалуйста, уточните ваш запрос",
+                "sources": [],
+            }
+            | {"success": True}
         )
-    elif domain == "not_domain":
+    elif domain == "trash":
         return JSONResponse(
-            content={"qa_answer": popular_answers["popular_angry"], "sources": "clarification"} | {"success": True}
+            content={
+                "qa_answer": popular_answers["popular_angry"],
+                "sources": [],
+            }
+            | {"success": True}
         )
     q_emb = await get_text_embedding(rewrited)
 
