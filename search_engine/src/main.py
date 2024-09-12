@@ -6,14 +6,14 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from src import database
-from src.dao import init_db
-import src.healthchecker as hc
-from src.router import router
-# import database
-# from dao import init_db
-# import healthchecker as hc
-# from router import router
+# from src import database
+# from src.dao import init_db
+# import src.healthchecker as hc
+# from src.router import router
+import database
+from dao import init_db
+import healthchecker as hc
+from router import router
 
 
 @asynccontextmanager
