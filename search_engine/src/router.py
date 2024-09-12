@@ -2,7 +2,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from src.dao import search_by_embedding, get_text_embedding, rewrite_query, \
-    qa_stuff, check_popularity, check_domain
+    qa_stuff, check_popularity, check_domain, qa_map_reduce
+
 from src.contracts import ChatHistory
 from src.config import popular_answers
 # from dao import search_by_embedding, get_text_embedding, rewrite_query, qa_stuff
@@ -56,7 +57,7 @@ async def search(
         f_index=request.state.fd,
     )
 
-    qa = await qa_stuff(rewrited, result)
+    qa = await qa_map_reduce(rewrited, result)
 
     return JSONResponse(
         content={"qa_answer": qa, "sources": result} | {"success": True}

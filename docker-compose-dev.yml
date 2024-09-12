@@ -1,6 +1,6 @@
 version: '2.3'
 
-# export DB_NAME=hackdb DB_USER=hack DB_PASSWORD=hack DB_HOST=localhost DB_PORT=5044 EMBEDDER_URL="http://0.0.0.0:5043" NEURAL_URL="http://0.0.0.0:7860"
+# export DB_NAME=hack_db DB_USER=hack DB_PASSWORD=123 DB_HOST=localhost DB_PORT=5044 EMBEDDER_URL="http://0.0.0.0:5042" NEURAL_URL="http://0.0.0.0:5043"
 services:
   search_embedder:
     restart: always
@@ -21,7 +21,7 @@ services:
       - ./embedder:/embedder
 
       # TEST ONLY
-      - /home/shace_linux/.cache/huggingface/hub:/cache/
+      - /home/orange_lime/.cache/huggingface/hub:/cache/
     
     runtime: nvidia
 
@@ -37,17 +37,18 @@ services:
       context: ./neural_worker
       dockerfile: Dockerfile
     image: neural_worker:latest
-    command: bash -c "uvicorn main:app --host 0.0.0.0 --port 7860"
+    command: bash -c "uvicorn main:app --host 0.0.0.0 --port ${WORKER_PORT}"
 
     environment:
       - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES_LLM}
       - TRANSFORMERS_CACHE=${TRANSFORMERS_CACHE_LLM}
+      - HF_TOKEN=${HF_TOKEN}
 
     volumes:
       - ./neural_worker:/neural_worker
 
       # TEST ONLY
-      - /home/shace_linux/.cache/huggingface/hub:/cache/
+      - /home/orange_lime/.cache/huggingface/hub:/cache/
 
     runtime: nvidia
 
@@ -59,14 +60,14 @@ services:
     container_name: postgres
     mem_limit: 100m
     image: postgres:13.3
-    
+
     environment:
-      POSTGRES_DB: "hackdb"
-      POSTGRES_USER: "hack"
-      POSTGRES_PASSWORD: "hack"
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
       - ./pgdata:/var/lib/postgresql/data/pgdata
-    command: "-p 5044"
+    command: "-p ${DB_PORT}"
     ports:
-      - 5044:5044
+      - ${DB_PORT}:${DB_PORT}

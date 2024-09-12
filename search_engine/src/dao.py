@@ -1,5 +1,6 @@
 import os
 import json
+import asyncio
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
@@ -76,7 +77,6 @@ async def rewrite_query(chat_history):
 
     return chat_history[0].content
 
-
 async def check_popularity(last_query : str) -> str:
     """ """
     history = [{"role": "user", "content": config.popularity_prompt.format(query=last_query)}]
@@ -115,17 +115,47 @@ async def qa_stuff(query, passages):
         }
     ]
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            f"{os.getenv('NEURAL_URL')}/generate",
-            json={
-                "chat_history": history,
-                "max_new_tokens": config.max_new_tokens,
-            },
-        ) as resp:
-            response = await resp.json()
+    llm_answer = await get_llm_answer(history)
+    if llm_answer:
+        return llm_answer
 
-    return json.loads(response["answer"])["answer"]
+    return passages[0]["content"]
+
+
+async def perfom_map(history):
+    passage_answer = await get_llm_answer(history)
+    return passage_answer
+
+
+async def async_starmap(fn, iterable):
+    tasks = [fn(args) for args in iterable]
+    results = await asyncio.gather(*tasks)
+    return results
+
+
+async def qa_map_reduce(query, passages):
+    """ """
+    history = [
+        [
+            {
+                "role": "user",
+                "content": config.map_prompt.format(query=query, passages=line),
+            }
+        ]
+        for line in passages
+    ]
+
+    map_response = await async_starmap(perfom_map, history)
+    map_response = list(filter(lambda x: x is not None, map_response))
+    if not map_response:
+        reduce_response = await qa_stuff(query, passages)
+    else:
+        reduce_response = await qa_stuff(
+            query,
+            [{"question": "", "category": "", "content": el} for el in map_response],
+        )
+
+    return reduce_response
 
 
 def faiss_search_result(query_embedding, f_index: faiss.IndexFlatL2):
@@ -147,7 +177,7 @@ async def insert_data_to_pg(cols, session: AsyncSession):
     """
     q = sa.insert(IndexMetainfo).values(cols).returning(IndexMetainfo.index_metainf_id)
     q = await session.execute(q)
-    p_id = q.scalar_one_or_none()
+    p_id = q.scalar_one()
 
     return p_id
 
