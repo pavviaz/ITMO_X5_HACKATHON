@@ -49,7 +49,7 @@ services:
       - ./embedder:/embedder
 
       # TEST ONLY
-      # - /home/shace_linux/.cache/huggingface/hub:/cache/
+      - /home/shace_linux/.cache/huggingface/hub:/cache/
     
     runtime: nvidia
 
@@ -76,7 +76,7 @@ services:
       - ./neural_worker:/neural_worker
 
       # TEST ONLY
-      # - /home/shace_linux/.cache/huggingface/hub:/cache/
+      - /home/shace_linux/.cache/huggingface/hub:/cache/
 
     runtime: nvidia
 
@@ -99,3 +99,24 @@ services:
     command: "-p ${DB_PORT}"
     ports:
       - ${DB_PORT}:${DB_PORT}
+
+  streamlit:
+    container_name: streamlit
+    build:
+      context: ./streamlit
+      dockerfile: Dockerfile
+
+    environment:
+      SE_HOST: ${SE_HOST}
+      SE_PORT: ${SE_PORT}
+
+    volumes:
+      - ./streamlit:/streamlit
+
+    command: ['streamlit', 'run', 'page.py']
+
+    ports:
+      - 8501:8501  
+
+    depends_on:
+      - search_engine

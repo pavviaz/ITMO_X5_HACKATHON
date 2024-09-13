@@ -1,7 +1,37 @@
 version: '2.3'
 
-# export DB_NAME=hack_db DB_USER=hack DB_PASSWORD=123 DB_HOST=localhost DB_PORT=5044 EMBEDDER_URL="http://0.0.0.0:5042" NEURAL_URL="http://0.0.0.0:5043"
+# export DB_NAME=hack_db DB_USER=hack DB_PASSWORD=123DB_HOST=localhost DB_PORT=5044 EMBEDDER_URL="http://0.0.0.0:5042" NEURAL_URL="http://0.0.0.0:5043"
+# export SE_HOST=localhost SE_PORT=5041
 services:
+  search_engine:
+    restart: always
+    container_name: search_engine
+    mem_limit: 2600m
+
+    build:
+      context: ./search_engine
+      dockerfile: Dockerfile
+
+    image: search_engine:latest
+
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      EMBEDDER_URL: ${EMBEDDER_URL}
+      NEURAL_URL: ${NEURAL_URL}
+    volumes:
+      - ./search_engine:/search_engine
+    command: bash -c "uvicorn src.main:app --host 0.0.0.0 --port ${SEARCH_ENGINE_PORT}"
+    ports:
+      - ${SEARCH_ENGINE_PORT}:${SEARCH_ENGINE_PORT}
+    depends_on:
+      - postgres
+      - search_embedder
+      - neural_worker
+
   search_embedder:
     restart: always
     container_name: search_embedder
@@ -21,7 +51,7 @@ services:
       - ./embedder:/embedder
 
       # TEST ONLY
-      - /home/orange_lime/.cache/huggingface/hub:/cache/
+      - /home/shace_linux/.cache/huggingface/hub:/cache/
     
     runtime: nvidia
 
@@ -48,7 +78,7 @@ services:
       - ./neural_worker:/neural_worker
 
       # TEST ONLY
-      - /home/orange_lime/.cache/huggingface/hub:/cache/
+      - /home/shace_linux/.cache/huggingface/hub:/cache/
 
     runtime: nvidia
 
