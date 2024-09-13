@@ -49,7 +49,7 @@ services:
       - ./embedder:/embedder
 
       # TEST ONLY
-      - /home/orange_lime/.cache/huggingface/hub:/cache/
+      # - /home/shace_linux/.cache/huggingface/hub:/cache/
     
     runtime: nvidia
 
@@ -76,7 +76,7 @@ services:
       - ./neural_worker:/neural_worker
 
       # TEST ONLY
-      - /home/orange_lime/.cache/huggingface/hub:/cache/
+      # - /home/shace_linux/.cache/huggingface/hub:/cache/
 
     runtime: nvidia
 

@@ -16,8 +16,9 @@ class Worker:
             token=os.getenv("HF_TOKEN"),
             torch_dtype=torch.float16,
             low_cpu_mem_usage=True,
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
+            load_in_8bit=True,
+            # load_in_4bit=True,
+            # bnb_4bit_compute_dtype=torch.float16,
             cache_dir=os.getenv("TRANSFORMERS_CACHE"),
         )
 
@@ -31,7 +32,7 @@ class Worker:
 
         with torch.no_grad():
             outputs = self.model.generate(
-                **inputs, max_new_tokens=data.max_new_tokens, do_sample=True
+                **inputs, max_new_tokens=data.max_new_tokens, do_sample=False
             )
 
         o = self.tokenizer.decode(outputs[0], skip_special_tokens=True).split(
