@@ -1,13 +1,27 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from src.dao import search_by_embedding, get_text_embedding, rewrite_query, \
-    qa_stuff, check_popularity, check_domain, qa_map_reduce
-
+from src.dao import (
+    search_by_embedding,
+    get_text_embedding,
+    rewrite_query,
+    check_popularity,
+    check_domain,
+    qa_stuff
+)
 from src.contracts import ChatHistory
 from src.config import popular_answers
-# from dao import search_by_embedding, get_text_embedding, rewrite_query, qa_stuff
+# from dao import (
+#     search_by_embedding,
+#     get_text_embedding,
+#     rewrite_query,
+#     check_popularity,
+#     check_domain,
+#     qa_stuff
+# )
 # from contracts import ChatHistory
+# from config import popular_answers
+
 
 router = APIRouter(prefix="/api/v1", tags=["x5_api"])
 
@@ -35,14 +49,14 @@ async def search(
     if popularity != "ordinary":
         popular_answer = popular_answers[popularity]
         return JSONResponse(
-            content={"qa_answer": popular_answer, "sources": "popular phrases"}
+            content={"qa_answer": popular_answer, "sources": [], "exit": "POP_FILTER"}
             | {"success": True}
         )
 
     if len(chat_history.history) > 1:
         rewrited = await rewrite_query(chat_history.history)
     else:
-        rewrited = chat_history.history
+        rewrited = chat_history.history[0].content
 
     domain = await check_domain(rewrited)
     if domain == "multi":
@@ -50,6 +64,7 @@ async def search(
             content={
                 "qa_answer": "Пожалуйста, уточните ваш запрос",
                 "sources": [],
+                "exit": f"DOMEN: {domain}"
             }
             | {"success": True}
         )
@@ -58,6 +73,7 @@ async def search(
             content={
                 "qa_answer": popular_answers["popular_angry"],
                 "sources": [],
+                "exit": f"DOMEN: {domain}"
             }
             | {"success": True}
         )
@@ -69,8 +85,8 @@ async def search(
         f_index=request.state.fd,
     )
 
-    qa = await qa_map_reduce(rewrited, result)
+    qa = await qa_stuff(rewrited, result)
 
     return JSONResponse(
-        content={"qa_answer": qa, "sources": result} | {"success": True}
+        content={"qa_answer": qa, "sources": result, "exit": f"QA"} | {"success": True}
     )
