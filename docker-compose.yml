@@ -49,7 +49,7 @@ services:
       - ./embedder:/embedder
 
       # TEST ONLY
-      - /home/paul/.cache/hugg:/cache/
+      - /home/shace_linux/.cache/huggingface/hub:/cache/
     
     runtime: nvidia
 
@@ -76,7 +76,7 @@ services:
       - ./neural_worker:/neural_worker
 
       # TEST ONLY
-      - /home/paul/.cache/hugg:/cache/
+      - /home/shace_linux/.cache/huggingface/hub:/cache/
 
     runtime: nvidia
 
