@@ -1,10 +1,27 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from src.dao import search_by_embedding, get_text_embedding, rewrite_query, qa_stuff
+from src.dao import (
+    search_by_embedding,
+    get_text_embedding,
+    rewrite_query,
+    check_popularity,
+    check_domain,
+    qa_stuff
+)
 from src.contracts import ChatHistory
-# from dao import search_by_embedding, get_text_embedding, rewrite_query, qa_stuff
+from src.config import popular_answers
+# from dao import (
+#     search_by_embedding,
+#     get_text_embedding,
+#     rewrite_query,
+#     check_popularity,
+#     check_domain,
+#     qa_stuff
+# )
 # from contracts import ChatHistory
+# from config import popular_answers
+
 
 router = APIRouter(prefix="/api/v1", tags=["x5_api"])
 
@@ -27,18 +44,39 @@ async def search(
         including the metadata information retrieved
         from the database and the "success" key with the value True.
     """
-    # TODO
-    # if user's last content is similar to any of popular - return
-    # use llm? train some model?
+    popularity = await check_popularity(chat_history.history[-1].content)
 
-    # TODO
-    # query rewriting - to make last user message contextualized
-    rewrited = await rewrite_query(chat_history.history)
+    if popularity != "ordinary":
+        popular_answer = popular_answers[popularity]
+        return JSONResponse(
+            content={"qa_answer": popular_answer, "sources": [], "exit": "POP_FILTER"}
+            | {"success": True}
+        )
 
-    # TODO
-    # domain classifier - to decide wether to lauch main pipeline
-    # or ask to specify request
+    if len(chat_history.history) > 1:
+        rewrited = await rewrite_query(chat_history.history)
+    else:
+        rewrited = chat_history.history[0].content
 
+    domain = await check_domain(rewrited)
+    if domain == "multi":
+        return JSONResponse(
+            content={
+                "qa_answer": "Пожалуйста, уточните ваш запрос",
+                "sources": [],
+                "exit": f"DOMEN: {domain}"
+            }
+            | {"success": True}
+        )
+    elif domain == "trash":
+        return JSONResponse(
+            content={
+                "qa_answer": popular_answers["popular_angry"],
+                "sources": [],
+                "exit": f"DOMEN: {domain}"
+            }
+            | {"success": True}
+        )
     q_emb = await get_text_embedding(rewrited)
 
     result = await search_by_embedding(
@@ -50,5 +88,5 @@ async def search(
     qa = await qa_stuff(rewrited, result)
 
     return JSONResponse(
-        content={"qa_answer": qa, "sources": result} | {"success": True}
+        content={"qa_answer": qa, "sources": result, "exit": f"QA"} | {"success": True}
     )

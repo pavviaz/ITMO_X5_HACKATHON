@@ -28,6 +28,7 @@ services:
     depends_on:
       - postgres
       - search_embedder
+      - neural_worker
 
   search_embedder:
     restart: always
@@ -104,6 +105,10 @@ services:
     build:
       context: ./streamlit
       dockerfile: Dockerfile
+
+    environment:
+      SE_HOST: ${SE_HOST}
+      SE_PORT: ${SE_PORT}
 
     volumes:
       - ./streamlit:/streamlit

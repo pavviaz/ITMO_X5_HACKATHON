@@ -131,7 +131,7 @@ Congratulations! (Streamlit is now available at `http://localhost:8501/` and) AP
 
 <a href="https://t.me/nikuto11">Busko Nikita</a>
 
-<a href="(https://t.me/helilozium">Rychkov Pavel</a>
+<a href="https://t.me/helilozium">Rychkov Pavel</a>
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>

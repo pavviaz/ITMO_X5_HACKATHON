@@ -1,3 +1,4 @@
+import os
 import requests
 import streamlit as st
 import pandas as pd
@@ -11,86 +12,103 @@ st.set_page_config(
     page_icon="🤗",
 )
 
-# interact with FastAPI endpoint
-QUESTION_URL = "http://search_engine:5041/api/v1/get_answer"
+# Interact with FastAPI endpoint
+QUESTION_URL = f"http://{os.getenv('SE_HOST')}:{os.getenv('SE_PORT')}/api/v1/get_answer"
 COOKIE = "request_history"
 
-#st.balloons()
-
-# construct UI layout
 st.title(":green[X5 tech] bot")
-
-st.header(
-    "This X5 tech bot will help you with all your questions!"
-)
-
-#@st.cache_resource
-#def get_manager():
-#    return stx.CookieManager()
+st.header("This X5 tech bot will help you with all your questions!")
 
 cookie_manager = stx.CookieManager()
-#print(cookie_manager)
 cookie = cookie_manager.get(cookie=COOKIE)
 time.sleep(0.5)
 
-if  not isinstance(cookie, list):
+if not isinstance(cookie, list):
     cookie = []
 
-
-# Streamed response emulator
 def response_generate():
     with st.spinner("Sending request to API..."):
-        response = requests.post(url=f"{QUESTION_URL}", json={"history": st.session_state.messages}).json()
-    for word in response["qa_answer"]:
+        response = requests.post(
+            url=f"{QUESTION_URL}", json={"history": st.session_state.messages}
+        ).json()
+
+    return response
+
+def response_stream(answer):
+    for word in answer:
         yield word
         time.sleep(0.02)
 
-
-
+# Initialize session state for messages, sources, and visibility
 if "messages" not in st.session_state:
     st.session_state.messages = cookie
+    st.session_state.sources = []
+    st.session_state.show_sources = {}
 
 # Display chat messages from history on app rerun
-for message in st.session_state.messages:
+for index, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+        
+        # Add button for assistant's messages to show/hide sources
+        if message["role"] == "assistant" and "sources" in message:
+            # Initialize visibility state for each message
+            if index not in st.session_state.show_sources:
+                st.session_state.show_sources[index] = False
+
+            # Toggle button for showing/hiding sources
+            if st.button(
+                "Show Sources" if not st.session_state.show_sources[index] else "Hide Sources", 
+                key=f"sources_button_{index}"
+            ):
+                st.session_state.show_sources[index] = not st.session_state.show_sources[index]
+
+            # Display sources if the visibility state is True
+            if st.session_state.show_sources[index]:
+                for source in message["sources"]:
+                    st.markdown(f"**Question:** {source['question']}")
+                    st.markdown(f"**Content:** {source['content']}")
+                    st.markdown(f"**Category:** {source['category']}")
+                    st.divider()
 
 # Accept user input
 if prompt := st.chat_input("What is up?"):
-    # Add user message to chat history
-    #st.session_state.messages.append({"role": "user", "content": prompt})
-    #cookie = cookie_manager.get(cookie=COOKIE)
     cookie.append({"role": "user", "content": prompt})
-    
-    #cookie_manager.delete(COOKIE)
-    #cookie_manager.set(COOKIE, cookie)
     st.session_state.messages.append({"role": "user", "content": prompt})
-    # Display user message in chat message container
+
     with st.chat_message("user"):
         st.markdown(prompt)
-    # Display assistant response in chat message container
-    with st.chat_message("assistant"):     
-        response = st.write_stream(response_generate())
 
-    # Add assistant response to chat history
+    with st.chat_message("assistant"):
+        resp = response_generate()
+        response = st.write_stream(response_stream(resp["qa_answer"]))
+        sources = resp.get("sources", [])
+        
+        if sources:
+            st.session_state.sources.append(sources)
+            index = len(st.session_state.messages)  # Index for current message
+            
+            # Initialize visibility state for new message
+            st.session_state.show_sources[index] = False
 
-    #cookie = cookie_manager.get(cookie=COOKIE)
-    cookie.append({"role": "assistant", "content": response})
-    #cookie_manager.delete(COOKIE)
-    #cookie_manager.set(COOKIE, cookie)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+            # Toggle button for showing/hiding sources
+            if st.button(
+                "Show Sources" if not st.session_state.show_sources[index] else "Hide Sources", 
+                key=f"sources_button_{index}"
+            ):
+                st.session_state.show_sources[index] = not st.session_state.show_sources[index]
 
-    #cookie_manager.delete(COOKIE)
+            # Display sources if the visibility state is True
+            if st.session_state.show_sources[index]:
+                for source in sources:
+                    st.markdown(f"**Question:** {source['question']}")
+                    st.markdown(f"**Content:** {source['content']}")
+                    st.markdown(f"**Category:** {source['category']}")
+                    st.divider()
+
+    cookie.append({"role": "assistant", "content": response, "sources": sources})
+    st.session_state.messages.append({"role": "assistant", "content": response, "sources": sources})
+
     cookie_manager.set(COOKIE, cookie)
+
 st.divider()
-
-
-
-# Initialize chat history
-#cookies = cookie_manager.get_all()
-#st.write(cookies)
-
-
-
-#cookies = cookie_manager.get_all()
-

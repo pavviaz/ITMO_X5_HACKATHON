@@ -1,7 +1,37 @@
 version: '2.3'
 
-# export DB_NAME=hackdb DB_USER=hack DB_PASSWORD=hack DB_HOST=localhost DB_PORT=5044 EMBEDDER_URL="http://0.0.0.0:5043" NEURAL_URL="http://0.0.0.0:7860"
+# export DB_NAME=hack_db DB_USER=hack DB_PASSWORD=123DB_HOST=localhost DB_PORT=5044 EMBEDDER_URL="http://0.0.0.0:5042" NEURAL_URL="http://0.0.0.0:5043"
+# export SE_HOST=localhost SE_PORT=5041
 services:
+  search_engine:
+    restart: always
+    container_name: search_engine
+    mem_limit: 2600m
+
+    build:
+      context: ./search_engine
+      dockerfile: Dockerfile
+
+    image: search_engine:latest
+
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      EMBEDDER_URL: ${EMBEDDER_URL}
+      NEURAL_URL: ${NEURAL_URL}
+    volumes:
+      - ./search_engine:/search_engine
+    command: bash -c "uvicorn src.main:app --host 0.0.0.0 --port ${SEARCH_ENGINE_PORT}"
+    ports:
+      - ${SEARCH_ENGINE_PORT}:${SEARCH_ENGINE_PORT}
+    depends_on:
+      - postgres
+      - search_embedder
+      - neural_worker
+
   search_embedder:
     restart: always
     container_name: search_embedder
@@ -37,11 +67,12 @@ services:
       context: ./neural_worker
       dockerfile: Dockerfile
     image: neural_worker:latest
-    command: bash -c "uvicorn main:app --host 0.0.0.0 --port 7860"
+    command: bash -c "uvicorn main:app --host 0.0.0.0 --port ${WORKER_PORT}"
 
     environment:
       - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES_LLM}
       - TRANSFORMERS_CACHE=${TRANSFORMERS_CACHE_LLM}
+      - HF_TOKEN=${HF_TOKEN}
 
     volumes:
       - ./neural_worker:/neural_worker
@@ -59,14 +90,14 @@ services:
     container_name: postgres
     mem_limit: 100m
     image: postgres:13.3
-    
+
     environment:
-      POSTGRES_DB: "hackdb"
-      POSTGRES_USER: "hack"
-      POSTGRES_PASSWORD: "hack"
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       PGDATA: "/var/lib/postgresql/data/pgdata"
     volumes:
       - ./pgdata:/var/lib/postgresql/data/pgdata
-    command: "-p 5044"
+    command: "-p ${DB_PORT}"
     ports:
-      - 5044:5044
+      - ${DB_PORT}:${DB_PORT}
