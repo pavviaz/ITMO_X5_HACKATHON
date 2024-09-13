@@ -40,6 +40,19 @@
 <!-- UPDATES -->
 ## Updates 
 
+### 13.09.2024:
+
+We have made significant improvements to our API service, enhancing its efficiency and accuracy.
+We've also optimized our prompt engineering for better generate. 
+Additionally, we've developed a user-friendly interface using streamlit that includes advanced features such as the ability to view the sources of each response, providing transparency and context. 
+The service is now publicly accessible, ensuring broader usability. 
+For a seamless user experience, the <a href="http://81.94.159.73:8501/">UI</a> version is available at: http://81.94.159.73:8501
+
+The project is now in Test state, API and <a href="http://81.94.159.73:8501/">UI</a> are fully functional, all prompts enhanced, map reduce and requests history rewriting functionality deployed. 
+
+For better QA quality <a href="https://huggingface.co/meta-llama/Meta-Llama-3.1-70B-Instruct">LLaMA3.1-70B</a> launched in quantized 4-bit.
+
+
 ### 07.09.2024:
 The project is now in MVP state, consists of several services (API, Embedder, LLM, PSQL) and fully functional.
 
@@ -66,7 +79,14 @@ Our QA pipeline includes these stages:
 4) **Retrieve**: we use Faiss with PSQL to store and search relevant passages for user's input we got from early stages.
 5) **Map-Reduce/Stuff QA**: Retrieved passages are being used for generating final answer. We implemented Map-Reduce (1. every passage relevance score for request --> 2. generating answer) and Stuff (all passages with request in one prompt) schemes for QA.
 
+### Architecture:
+<img src="example_images/streamlit.png" height=400 align = "center"/>
+
+### API Example:
 <img src="example_images/swagger.png" height=400 align = "center"/>
+
+### UI Example:
+<img src="example_images/streamlit.png" height=400 align = "center"/>
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
