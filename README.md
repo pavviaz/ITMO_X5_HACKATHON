@@ -39,6 +39,7 @@
 
 
 <img src="example_images/ezgif-2-15c3038b98.gif" align = "center"/>
+
 <!-- UPDATES -->
 ## Updates 
 
