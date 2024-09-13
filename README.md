@@ -37,6 +37,8 @@
   </ol>
 </details>
 
+
+<img src="example_images/ezgif-2-15c3038b98.gif" align = "center"/>
 <!-- UPDATES -->
 ## Updates 
 
@@ -80,7 +82,9 @@ Our QA pipeline includes these stages:
 5) **Map-Reduce/Stuff QA**: Retrieved passages are being used for generating final answer. We implemented Map-Reduce (1. every passage relevance score for request --> 2. generating answer) and Stuff (all passages with request in one prompt) schemes for QA.
 
 ### Architecture:
-<img src="example_images/streamlit.png" height=400 align = "center"/>
+<img src="example_images/photo_2024-09-13_11-54-20.jpg" height=400 align = "center"/>
+
+<img src="example_images/photo_2024-09-13_11-54-30.jpg" height=400 align = "center"/>
 
 ### API Example:
 <img src="example_images/swagger.png" height=400 align = "center"/>
