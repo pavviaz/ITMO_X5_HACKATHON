@@ -113,7 +113,7 @@ Our QA pipeline includes these stages:
    ```
    git clone https://github.com/pavviaz/ITMO_X5_HACKATHON.git
    ```
-2. Place init CSV into `api/init_data` (<a href="https://disk.yandex.ru/d/4NmL6NxnlXf-tQ">the file we use to create RAG db</a>). Change path for model and data in config files if needed
+2. Place init CSV into `search_engine/init_data` (<a href="https://disk.yandex.ru/d/4NmL6NxnlXf-tQ">the file we use to create RAG db</a>). Change path for model and data in config files if needed
 3. Create `.env` file in root directory with following keys
     ```
     # ---- SEARCH_ENGINE/PSQL ----
@@ -133,7 +133,7 @@ Our QA pipeline includes these stages:
 
     # ---- NEURAL_WORKER ----
     HF_TOKEN=...
-    WORKER_PORT=7860
+    WORKER_PORT=...
     NVIDIA_VISIBLE_DEVICES_LLM=...
     TRANSFORMERS_CACHE_LLM=/cache/
     ``` 
